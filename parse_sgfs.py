@@ -1,10 +1,11 @@
 from gomill import sgf, boards
 import glob
 import numpy as np
-
+import random as rnd
 
 def main():
     print parse_all()
+
 
 def parse_all():
     datax = []
@@ -15,8 +16,9 @@ def parse_all():
             datax += x
             datay += y
         except:
-            pass
+            print "parse error", file
     return (datax, datay)
+
 
 def parse_sgf(file):
     with open(file) as fh:
@@ -48,12 +50,16 @@ def parse_sgf(file):
 
 
 def make_case(curr, move, color):
+    return (board_to_nn(curr, color), move)
 
-    posarr = [[(0, 0) for x in range(curr.side)] for y in range(curr.side)]
 
-    for x in range(curr.side):
-        for y in range(curr.side):
-            pos = curr.get(x, y)
+def board_to_nn(board, color):
+
+    posarr = [[(0, 0) for x in range(board.side)] for y in range(board.side)]
+
+    for x in range(board.side):
+        for y in range(board.side):
+            pos = board.get(x, y)
 
             if pos is None:
                 continue
@@ -63,7 +69,7 @@ def make_case(curr, move, color):
             elif pos != color:
                 posarr[x][y] = (0, 1)
 
-    return ((np.array(posarr)), move)
+    return np.array(posarr)
 
 
 def get_sgfs():

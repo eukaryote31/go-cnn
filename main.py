@@ -4,8 +4,9 @@ import numpy as np
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
-from keras.layers import Convolution2D, MaxPooling2D, merge
+from keras.layers import Convolution2D, MaxPooling2D, Add, Input, ZeroPadding2D
 from keras.utils import np_utils
+from keras.models import Model
 from parse_sgfs import parse_all
 
 from keras.datasets import mnist
@@ -20,40 +21,49 @@ x_train = x_train.reshape(x_train.shape[0], 19, 19, 2)
 
 y_train = [x + y * 19 for x, y in y_train]
 y_train = np_utils.to_categorical(y_train, 361)
+y_train = y_train.astype('float32')
 
 
+x_test = x_train[-200:]
+x_train = x_train[:-200]
+y_test = y_train[-200:]
+y_train = y_train[:-200]
 
 print "Training on", len(x_train), "positions"
 
-model = Sequential()
+
+def convolutional_block(l):
+    l = Convolution2D(256, (3, 3), activation='relu',
+                      input_shape=(19, 19, 2), padding="same")(l)
+    l = BatchNormalization()(l)
+    return l
 
 
-def convolutional_block(model):
-    model.add(Convolution2D(
-        256, (3, 3), activation='relu', input_shape=(19, 19, 2)))
-    model.add(BatchNormalization())
+def residual_block(l):
+    m = Convolution2D(256, (3, 3), activation='relu',
+                      input_shape=(19, 19, 2), padding="same")(l)
+    m = BatchNormalization()(m)
+    m = Convolution2D(256, (3, 3), activation='relu',
+                      input_shape=(19, 19, 2), padding="same")(m)
+    m = BatchNormalization()(m)
+    l = Add()([l, m])
+    return l
 
 
-def residual_block(model):
-    model.add(Convolution2D(256, (3, 3), activation='relu'))
-    model.add(BatchNormalization())
-    model.add(Convolution2D(256, (3, 3), activation='relu'))
-    model.add(BatchNormalization())
-    model.add(merge.add())
+inp = Input(shape=(19, 19, 2))
+l = convolutional_block(inp)
+
+for i in range(5):
+    l = residual_block(l)
 
 
-convolutional_block(model)
+l = Flatten()(l)
+output = Dense(361, activation='relu')(l)
 
-residual_block(model)
-residual_block(model)
-residual_block(model)
-
-model.add(Flatten())
-model.add(Dense(361, activation='softmax'))
-
+model = Model(inputs=inp, outputs=output)
 model.compile(loss='categorical_crossentropy',
               optimizer='adam', metrics=['accuracy'])
 model.fit(x_train, y_train, batch_size=512, epochs=10, verbose=1)
 score = model.evaluate(x_test, y_test, verbose=1)
- print "Training score: ", score
+print "Training score: ", score
 model.save('model.h5')
