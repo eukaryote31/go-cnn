@@ -1,7 +1,10 @@
 from gomill import sgf, boards
 import glob
 import numpy as np
+import numpy.random as npr
 import random as rnd
+import math
+
 
 def main():
     print parse_all()
@@ -11,12 +14,16 @@ def parse_all():
     datax = []
     datay = []
     for file in get_sgfs():
-        try:
-            x, y = parse_sgf(file)
-            datax += x
-            datay += y
-        except:
-            print "parse error", file
+        x, y = parse_sgf(file)
+        datax += x
+        datay += y
+
+    # drop half randomly
+    zipped = zip(datax, datay)
+    npr.shuffle(zipped)
+    zipped = zipped[len(zipped) // 2:]
+    datax, datay = zip(*zipped)
+
     return (datax, datay)
 
 
@@ -33,43 +40,66 @@ def parse_sgf(file):
 
     curr = boards.Board(19)
 
+    moves = []
     for node in mainseq:
         if node.has_property("W"):
             move = node.get("W")
-            pos, move = make_case(curr, move, 'w')
+            pos, move = make_case(curr, move, 'w', moves)
             datax.append(pos)
             datay.append(move)
             curr.play(move[0], move[1], 'w')
         elif node.has_property("B"):
             move = node.get("B")
-            pos, move = make_case(curr, move, 'w')
+            pos, move = make_case(curr, move, 'w', moves)
             datax.append(pos)
             datay.append(move)
             curr.play(move[0], move[1], 'b')
+        moves.append(move)
+
     return (datax, datay)
 
 
-def make_case(curr, move, color):
-    return (board_to_nn(curr, color), move)
+def make_case(curr, move, color, moves):
+    return (board_to_nn(curr, color, moves), move)
 
 
-def board_to_nn(board, color):
+def board_to_nn(board, color, moves):
 
-    posarr = [[(0, 0) for x in range(board.side)] for y in range(board.side)]
+    posarr = [[(0, 0, 0, 0) for x in range(board.side)]
+              for y in range(board.side)]
 
     for x in range(board.side):
         for y in range(board.side):
             pos = board.get(x, y)
 
+            if pos in moves:
+                n = moves.index(pos)
+            else:
+                n = 0
+
             if pos is None:
                 continue
 
+            # (same, opponent, movenum)
             if pos == color:
-                posarr[x][y] = (1, 0)
+                posarr[x][y] = (1, 0, n, simple_liberties(board, x, y))
             elif pos != color:
-                posarr[x][y] = (0, 1)
+                posarr[x][y] = (0, 1, n, simple_liberties(board, x, y))
 
     return np.array(posarr)
+
+
+def simple_liberties(board, x, y):
+    n = 0
+    if x > 0 and board.get(x - 1, y) is None:
+        n += 1
+    if y > 0 and board.get(x, y - 1) is None:
+        n += 1
+    if x < 18 and board.get(x + 1, y) is None:
+        n += 1
+    if y < 18 and board.get(x, y + 1) is None:
+        n += 1
+    return n
 
 
 def get_sgfs():
