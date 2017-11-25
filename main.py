@@ -4,7 +4,7 @@ import numpy as np
 
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten, BatchNormalization
-from keras.layers import Convolution2D, MaxPooling2D, Add, Input, ZeroPadding2D
+from keras.layers import Convolution2D, MaxPooling2D, Add, Input, ZeroPadding2D, LeakyReLU
 from keras.utils import np_utils
 from keras.models import Model
 from keras.models import load_model
@@ -49,18 +49,22 @@ def main():
 
 
 def convolutional_block(l):
-    l = Convolution2D(128, (3, 3), activation='leakyrelu', padding="same")(l)
+    l = Convolution2D(128, (3, 3), padding="same")(l)
     l = BatchNormalization()(l)
+    l = LeakyReLU()(l)
     return l
 
 
 def residual_block(l):
-    m = Convolution2D(128, (3, 3), activation='leakyrelu', padding="same")(l)
+    m = Convolution2D(128, (3, 3), padding="same")(l)
     m = BatchNormalization()(m)
-    m = Convolution2D(128, (3, 3), activation='leakyrelu', padding="same")(m)
+    m = LeakyReLU()(m)
+
+    m = Convolution2D(128, (3, 3), padding="same")(m)
     m = BatchNormalization()(m)
 
     l = Add()([l, m])
+    l = LeakyReLU()(l)
     return l
 
 
@@ -70,6 +74,10 @@ def res_net():
 
     for i in range(3):
         l = residual_block(l)
+
+    l = Convolution2D(2, (1, 1), padding="same")(l)
+    l = BatchNormalization()(l)
+    l = LeakyReLU()(l)
 
     l = Flatten()(l)
     output = Dense(361, activation='sigmoid')(l)
