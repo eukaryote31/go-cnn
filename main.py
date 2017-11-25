@@ -12,17 +12,25 @@ from parse_sgfs import parse_all
 from keras.datasets import mnist
 from keras import backend
 
+import pickle
+
 from matplotlib import pyplot as plt
 import numpy as np
 from PIL import Image
 
-TESTING_SIZE = 1000
+TESTING_SIZE = 10000
 NUM_FEAT_PLANES = 4
-
+NUM_EPOCHS = 1
+NUM_CONV_FILTERS = 256
+BATCH_SIZE = 2048
+NUM_RES_BLOCKS = 3
 
 def main():
+    print "Loading data"
+    with open("dataset.pickle", "rb") as fh:
+        (x_train, y_train) = pickle.load(fh)
+    print "Data loaded"
 
-    (x_train, y_train) = parse_all()
     x_train = np.array(x_train)
     x_train = x_train.reshape(x_train.shape[0], 19, 19, NUM_FEAT_PLANES)
 
@@ -39,9 +47,9 @@ def main():
 
     #model = load_model('model.h5')
     model = res_net()
-    model.compile(loss='binary_cross_entropy',
+    model.compile(loss='binary_crossentropy',
                   optimizer='adam', metrics=['mean_squared_error'])
-    model.fit(x_train, y_train, batch_size=1024, epochs=2, verbose=1)
+    model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=NUM_EPOCHS, verbose=1)
 
     score = model.evaluate(x_test, y_test, verbose=1)
     print "Testing score: ", score
@@ -49,22 +57,23 @@ def main():
 
 
 def convolutional_block(l):
-    l = Convolution2D(128, (3, 3), padding="same")(l)
+    l = Convolution2D(NUM_CONV_FILTERS, (3, 3), padding="same")(l)
     l = BatchNormalization()(l)
     l = LeakyReLU()(l)
     return l
 
 
 def residual_block(l):
-    m = Convolution2D(128, (3, 3), padding="same")(l)
+    m = Convolution2D(NUM_CONV_FILTERS, (3, 3), padding="same")(l)
     m = BatchNormalization()(m)
     m = LeakyReLU()(m)
 
-    m = Convolution2D(128, (3, 3), padding="same")(m)
+    m = Convolution2D(NUM_CONV_FILTERS, (3, 3), padding="same")(m)
     m = BatchNormalization()(m)
 
     l = Add()([l, m])
     l = LeakyReLU()(l)
+    l = Dropout(0.6)(l)
     return l
 
 
@@ -72,7 +81,7 @@ def res_net():
     inp = Input(shape=(19, 19, NUM_FEAT_PLANES))
     l = convolutional_block(inp)
 
-    for i in range(3):
+    for i in range(NUM_RES_BLOCKS):
         l = residual_block(l)
 
     l = Convolution2D(2, (1, 1), padding="same")(l)
@@ -88,13 +97,13 @@ def res_net():
 
 def conv_net():
     model = Sequential()
-    model.add(Convolution2D(256, (3, 3), activation='relu',
+    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
                             input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
     model.add(BatchNormalization())
-    model.add(Convolution2D(256, (3, 3), activation='relu',
+    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
                             input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
     model.add(BatchNormalization())
-    model.add(Convolution2D(256, (3, 3), activation='relu',
+    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
                             input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
     model.add(Flatten())
     model.add(Dense(361, activation='softmax'))

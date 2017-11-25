@@ -4,12 +4,17 @@ import numpy as np
 import numpy.random as npr
 import random as rnd
 import math
+import cPickle as pickle
 
 
 def main():
-    print parse_all()
+    print "parsing..."
+    parsed = parse_all()
+    print "pickling"
+    with open("dataset.pickle", "wb") as fh:
+        pickle.dump(parsed, fh, protocol=2)
 
-
+    print "pickled!"
 def parse_all():
     datax = []
     datay = []
@@ -17,12 +22,6 @@ def parse_all():
         x, y = parse_sgf(file)
         datax += x
         datay += y
-
-    # drop half randomly
-    zipped = zip(datax, datay)
-    npr.shuffle(zipped)
-    zipped = zipped[len(zipped) // 2:]
-    datax, datay = zip(*zipped)
 
     return (datax, datay)
 
