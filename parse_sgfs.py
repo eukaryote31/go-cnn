@@ -54,7 +54,9 @@ def parse_sgf(file):
             datay.append(move)
             curr.play(move[0], move[1], 'b')
         moves.append(move)
-
+    zipped = zip(datax, datay)
+    zipped = rnd.sample(zipped, 10)
+    datax, datay = zip(*zipped)
     return (datax, datay)
 
 

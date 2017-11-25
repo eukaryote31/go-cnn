@@ -12,18 +12,20 @@ from parse_sgfs import parse_all
 from keras.datasets import mnist
 from keras import backend
 
-import pickle
+import cPickle as pickle
 
 from matplotlib import pyplot as plt
 import numpy as np
 from PIL import Image
 
-TESTING_SIZE = 10000
+TESTING_SIZE = 1000
 NUM_FEAT_PLANES = 4
 NUM_EPOCHS = 1
 NUM_CONV_FILTERS = 256
 BATCH_SIZE = 2048
-NUM_RES_BLOCKS = 3
+NUM_RES_BLOCKS = 2
+TRAIN_EXISTING = False
+
 
 def main():
     print "Loading data"
@@ -43,13 +45,17 @@ def main():
     y_test = y_train[-TESTING_SIZE:]
     y_train = y_train[:-TESTING_SIZE]
 
+    if TRAIN_EXISTING:
+        model = load_model('model.h5')
+    else:
+        model = res_net()
+
     print "Training on", len(x_train), "positions"
 
-    #model = load_model('model.h5')
-    model = res_net()
     model.compile(loss='binary_crossentropy',
                   optimizer='adam', metrics=['mean_squared_error'])
-    model.fit(x_train, y_train, batch_size=BATCH_SIZE, epochs=NUM_EPOCHS, verbose=1)
+    model.fit(x_train, y_train, batch_size=BATCH_SIZE,
+              epochs=NUM_EPOCHS, verbose=1)
 
     score = model.evaluate(x_test, y_test, verbose=1)
     print "Testing score: ", score
@@ -117,6 +123,10 @@ def board_loss(y_true, y_pred):
     reduc = backend.clip(reduc, -0.1, None)
     reduc **= 2
     return 1 - backend.mean(reduc, axis=-1)
+
+
+def normalized(a, axis=-1, order=2):
+    l2 = np.atleast_1d(np.linalg.norm(a, order, axis))
 
 
 if __name__ == "__main__":
