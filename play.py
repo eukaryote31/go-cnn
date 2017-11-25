@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 from gomill import boards, ascii_boards, common
 from keras.models import load_model
 from parse_sgfs import board_to_nn
@@ -6,6 +7,7 @@ from keras.utils import np_utils
 import parse_sgfs
 from main import board_loss
 import keras.losses
+import math
 
 model = load_model("model.h5", custom_objects={'board_loss': board_loss})
 board = boards.Board(19)
@@ -19,6 +21,7 @@ def zero_illegal(board, weights):
                 weights[0][x + 19 * y] = 0
 
 moves = []
+prob_disp = [' ', ' ', '░', '░', '▒', '▒', '▓', '▓', '█', '█']
 while True:
     print ascii_boards.render_board(board)
     m = raw_input("move: ")
@@ -29,7 +32,13 @@ while True:
 
     y = model.predict(np.array([board_to_nn(board, 'w', moves)]))
     zero_illegal(board, y)
-    print np.reshape(y[0], (19, 19))
+
+    probs = np.reshape(y[0], (19, 19))
+    for ay in range(19):
+        r = ""
+        for ax in range(19):
+            r += str(prob_disp[int(probs[ax][ay] * 10)]) * 2
+        print r
 
     i = np.argmax(y[0])
 
