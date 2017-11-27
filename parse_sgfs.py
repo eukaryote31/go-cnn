@@ -15,13 +15,18 @@ def main():
         pickle.dump(parsed, fh, protocol=2)
 
     print "pickled!"
+
+
 def parse_all():
     datax = []
     datay = []
+    i = 0
     for file in get_sgfs():
+        print "parsed", i
         x, y = parse_sgf(file)
         datax += x
         datay += y
+        i += 1
 
     return (datax, datay)
 
@@ -55,7 +60,7 @@ def parse_sgf(file):
             curr.play(move[0], move[1], 'b')
         moves.append(move)
     zipped = zip(datax, datay)
-    zipped = rnd.sample(zipped, 10)
+    zipped = rnd.sample(zipped, 5)
     datax, datay = zip(*zipped)
     return (datax, datay)
 

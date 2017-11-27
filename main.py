@@ -14,9 +14,7 @@ from keras import backend
 
 import cPickle as pickle
 
-from matplotlib import pyplot as plt
 import numpy as np
-from PIL import Image
 
 TESTING_SIZE = 1000
 NUM_FEAT_PLANES = 4
