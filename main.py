@@ -12,6 +12,8 @@ from parse_sgfs import parse_all
 from keras.datasets import mnist
 from keras import backend
 
+from keras import backend as K
+
 import cPickle as pickle
 
 import numpy as np
@@ -20,8 +22,8 @@ TESTING_SIZE = 1000
 NUM_FEAT_PLANES = 4
 NUM_EPOCHS = 1
 NUM_CONV_FILTERS = 256
-BATCH_SIZE = 2048
-NUM_RES_BLOCKS = 2
+BATCH_SIZE = 1024
+NUM_RES_BLOCKS = 4
 TRAIN_EXISTING = False
 
 
@@ -77,7 +79,6 @@ def residual_block(l):
 
     l = Add()([l, m])
     l = LeakyReLU()(l)
-    l = Dropout(0.6)(l)
     return l
 
 
@@ -95,7 +96,7 @@ def res_net():
     l = Flatten()(l)
     output = Dense(361, activation='sigmoid')(l)
 
-    model = Model(inputs=inp, outputs=output)
+    model = Model(inputs=[inp], outputs=output)
     return model
 
 

@@ -5,7 +5,7 @@ import numpy.random as npr
 import random as rnd
 import math
 import cPickle as pickle
-
+import time
 
 def main():
     print "parsing..."
@@ -18,15 +18,19 @@ def main():
 
 
 def parse_all():
+    start = time.time()
+
     datax = []
     datay = []
     i = 0
-    for file in get_sgfs():
-        print "parsed", i
+    sgfs = get_sgfs()
+    numsgfs = len(sgfs)
+    for file in sgfs:
         x, y = parse_sgf(file)
         datax += x
         datay += y
         i += 1
+        print "parsed", i, "\t", "ETA:", (time.time() - start)/i * (len(sgfs) - i), "seconds", "\t", file
 
     return (datax, datay)
 
@@ -48,16 +52,22 @@ def parse_sgf(file):
     for node in mainseq:
         if node.has_property("W"):
             move = node.get("W")
+            if move is None:
+                break
             pos, move = make_case(curr, move, 'w', moves)
             datax.append(pos)
             datay.append(move)
             curr.play(move[0], move[1], 'w')
         elif node.has_property("B"):
             move = node.get("B")
+            if move is None:
+                break
             pos, move = make_case(curr, move, 'w', moves)
             datax.append(pos)
             datay.append(move)
             curr.play(move[0], move[1], 'b')
+        else:
+            break
         moves.append(move)
     zipped = zip(datax, datay)
     zipped = rnd.sample(zipped, 5)
@@ -71,7 +81,7 @@ def make_case(curr, move, color, moves):
 
 def board_to_nn(board, color, moves):
 
-    posarr = [[(0, 0, 0, 0) for x in range(board.side)]
+    posarr = [[(0, 0, 0, 0, 1) for x in range(board.side)]
               for y in range(board.side)]
 
     for x in range(board.side):
@@ -88,9 +98,9 @@ def board_to_nn(board, color, moves):
 
             # (same, opponent, movenum)
             if pos == color:
-                posarr[x][y] = (1, 0, n, simple_liberties(board, x, y))
+                posarr[x][y] = (1, 0, n, simple_liberties(board, x, y), 0)
             elif pos != color:
-                posarr[x][y] = (0, 1, n, simple_liberties(board, x, y))
+                posarr[x][y] = (0, 1, n, simple_liberties(board, x, y), 0)
 
     return np.array(posarr)
 
