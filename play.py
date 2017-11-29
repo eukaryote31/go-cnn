@@ -12,7 +12,7 @@ import math
 model = load_model("model.h5", custom_objects={'board_loss': board_loss})
 board = boards.Board(19)
 
-
+SELFPLAY = False
 
 def zero_illegal(board, weights):
     for x in range(19):
@@ -24,12 +24,7 @@ def zero_illegal(board, weights):
 
 
 def normalized(a):
-    avg = np.average(a)
-    target_avg = 0.5
-    fac = target_avg / avg
-
-
-    return np.clip((a * fac - min(a)) / (max(a) - min(a)), 0, 0.999)
+    return a
 
 
 moves = []
@@ -40,6 +35,8 @@ with open("play_st.sgf", "r") as fh:
 
     mainseq = mainseq[1:]
     for node in mainseq:
+        if len(moves) >= 0:
+            break
         if node.has_property("W"):
             move = node.get("W")
             board.play(move[0], move[1], 'w')
@@ -47,23 +44,26 @@ with open("play_st.sgf", "r") as fh:
             move = node.get("B")
             board.play(move[0], move[1], 'b')
         moves.append(move)
-        if len(moves) > 60:
-            break
 
 prob_disp = [' ', ' ', '░', '░', '▒', '▒', '▓', '▓', '█', '█']
 while True:
     print ascii_boards.render_board(board)
-    m = raw_input("move: ")
-    print m
-    playerpos = common.move_from_vertex(m, 19)
-    moves.append(playerpos)
-    board.play(row=playerpos[0], col=playerpos[1], colour='b')
+    if not SELFPLAY:
+        m = raw_input("move: ")
+        print m
+        playerpos = common.move_from_vertex(m, 19)
+        moves.append(playerpos)
+        board.play(row=playerpos[0], col=playerpos[1], colour='b')
+    else:
+        if len(moves) > 200:
+            break
 
     y = model.predict(np.array([board_to_nn(board, 'w', moves)]))
     zero_illegal(board, y)
 
     probs = np.reshape(normalized(y[0]), (19, 19))
     print probs
+
     for ax in range(19):
         r = ""
         for ay in range(19):
@@ -73,4 +73,7 @@ while True:
     i = np.argmax(y[0])
 
     moves.append((i % 19, i // 19))
-    board.play(row=i % 19, col=i // 19, colour='w')
+    comp_color = 'w'
+    if SELFPLAY and len(moves) % 2 == 1:
+        comp_color = 'b'
+    board.play(row=i % 19, col=i // 19, colour=comp_color)

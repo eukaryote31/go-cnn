@@ -11,6 +11,7 @@ from keras.models import load_model
 from parse_sgfs import parse_all
 from keras.datasets import mnist
 from keras import backend
+from keras import optimizers
 
 from keras import backend as K
 
@@ -19,11 +20,11 @@ import cPickle as pickle
 import numpy as np
 
 TESTING_SIZE = 1000
-NUM_FEAT_PLANES = 4
+NUM_FEAT_PLANES = 5
 NUM_EPOCHS = 1
 NUM_CONV_FILTERS = 256
 BATCH_SIZE = 1024
-NUM_RES_BLOCKS = 4
+NUM_RES_BLOCKS = 5
 TRAIN_EXISTING = False
 
 
@@ -52,8 +53,8 @@ def main():
 
     print "Training on", len(x_train), "positions"
 
-    model.compile(loss='binary_crossentropy',
-                  optimizer='adam', metrics=['mean_squared_error'])
+    model.compile(loss="binary_crossentropy",
+                  optimizer=optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True), metrics=['mse'])
     model.fit(x_train, y_train, batch_size=BATCH_SIZE,
               epochs=NUM_EPOCHS, verbose=1)
 
@@ -82,6 +83,10 @@ def residual_block(l):
     return l
 
 
+def board_loss():
+    # todo
+    pass
+
 def res_net():
     inp = Input(shape=(19, 19, NUM_FEAT_PLANES))
     l = convolutional_block(inp)
@@ -94,7 +99,7 @@ def res_net():
     l = LeakyReLU()(l)
 
     l = Flatten()(l)
-    output = Dense(361, activation='sigmoid')(l)
+    output = Dense(361, activation='softmax')(l)
 
     model = Model(inputs=[inp], outputs=output)
     return model
@@ -102,26 +107,15 @@ def res_net():
 
 def conv_net():
     model = Sequential()
-    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
+    model.add(Convolution2D(NUM_CONV_FILTERS, (5, 5), activation='relu',
                             input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
-    model.add(BatchNormalization())
-    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
-                            input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
-    model.add(BatchNormalization())
-    model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
-                            input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
+    for i in range(8):
+        model.add(Convolution2D(NUM_CONV_FILTERS, (3, 3), activation='relu',
+                                input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
     model.add(Flatten())
     model.add(Dense(361, activation='softmax'))
 
     return model
-
-
-def board_loss(y_true, y_pred):
-    inv_true = 1 - y_true
-    reduc = y_pred - inv_true
-    reduc = backend.clip(reduc, -0.1, None)
-    reduc **= 2
-    return 1 - backend.mean(reduc, axis=-1)
 
 
 def normalized(a, axis=-1, order=2):
