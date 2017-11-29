@@ -70,7 +70,7 @@ def parse_sgf(file):
             break
         moves.append(move)
     zipped = zip(datax, datay)
-    zipped = rnd.sample(zipped, 5)
+    zipped = rnd.sample(zipped, 20)
     datax, datay = zip(*zipped)
     return (datax, datay)
 
