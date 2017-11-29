@@ -54,7 +54,7 @@ def main():
     print "Training on", len(x_train), "positions"
 
     model.compile(loss="binary_crossentropy",
-                  optimizer=optimizers.SGD(lr=0.01, decay=1e-6, momentum=0.9, nesterov=True), metrics=['mse'])
+                  optimizer=optimizers.SGD(momentum=0.9), metrics=['mse'])
     model.fit(x_train, y_train, batch_size=BATCH_SIZE,
               epochs=NUM_EPOCHS, verbose=1)
 
@@ -87,7 +87,11 @@ def board_loss():
     # todo
     pass
 
+
 def res_net():
+    """
+    Network with architecture similar to AlpaGo Zero tower
+    """
     inp = Input(shape=(19, 19, NUM_FEAT_PLANES))
     l = convolutional_block(inp)
 
@@ -99,13 +103,17 @@ def res_net():
     l = LeakyReLU()(l)
 
     l = Flatten()(l)
-    output = Dense(361, activation='softmax')(l)
+    l = Dense(361)(l)
+    output = Activation('softmax')(l)
 
     model = Model(inputs=[inp], outputs=output)
     return model
 
 
 def conv_net():
+    """
+    Network with similar architecture to the original AlphaGo policy net
+    """
     model = Sequential()
     model.add(Convolution2D(NUM_CONV_FILTERS, (5, 5), activation='relu',
                             input_shape=(19, 19, NUM_FEAT_PLANES), padding="same"))
