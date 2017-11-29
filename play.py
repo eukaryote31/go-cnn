@@ -63,7 +63,7 @@ while True:
 
     probs = np.reshape(normalized(y[0]), (19, 19))
     print probs
-
+    print sum(sum(probs))
     for ax in range(19):
         r = ""
         for ay in range(19):
