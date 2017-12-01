@@ -23,8 +23,8 @@ TESTING_SIZE = 1000
 NUM_FEAT_PLANES = 5
 NUM_EPOCHS = 1
 NUM_CONV_FILTERS = 256
-BATCH_SIZE = 1024
-NUM_RES_BLOCKS = 5
+BATCH_SIZE = 512
+NUM_RES_BLOCKS = 4
 TRAIN_EXISTING = False
 
 
@@ -46,6 +46,9 @@ def main():
     y_test = y_train[-TESTING_SIZE:]
     y_train = y_train[:-TESTING_SIZE]
 
+    x_train = x_train[:500000]
+    y_train = y_train[:500000]
+
     if TRAIN_EXISTING:
         model = load_model('model.h5')
     else:
@@ -53,8 +56,8 @@ def main():
 
     print "Training on", len(x_train), "positions"
 
-    model.compile(loss="binary_crossentropy",
-                  optimizer=optimizers.SGD(momentum=0.9), metrics=['mse'])
+    model.compile(loss="categorical_crossentropy",
+                  optimizer=optimizers.SGD(momentum=0.9), metrics=['accuracy'])
     model.fit(x_train, y_train, batch_size=BATCH_SIZE,
               epochs=NUM_EPOCHS, verbose=1)
 
