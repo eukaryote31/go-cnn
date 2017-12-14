@@ -25,7 +25,7 @@ NUM_EPOCHS = 1
 NUM_CONV_FILTERS = 256
 BATCH_SIZE = 512
 NUM_RES_BLOCKS = 4
-TRAIN_EXISTING = False
+TRAIN_EXISTING = True
 
 
 def main():
@@ -37,7 +37,8 @@ def main():
     x_train = np.array(x_train)
     x_train = x_train.reshape(x_train.shape[0], 19, 19, NUM_FEAT_PLANES)
 
-    y_train = [x + y * 19 for x, y in y_train]
+    x_train = np.flip(x_train, axis=1)
+    y_train = [(18 - x) + y * 19 for x, y in y_train]
     y_train = np_utils.to_categorical(y_train, 361)
     y_train = y_train.astype('float32')
 
@@ -46,18 +47,15 @@ def main():
     y_test = y_train[-TESTING_SIZE:]
     y_train = y_train[:-TESTING_SIZE]
 
-    x_train = x_train[:500000]
-    y_train = y_train[:500000]
 
     if TRAIN_EXISTING:
         model = load_model('model.h5')
     else:
         model = res_net()
+        model.compile(loss="categorical_crossentropy",
+                      optimizer=optimizers.Adam(), metrics=['accuracy'])
 
     print "Training on", len(x_train), "positions"
-
-    model.compile(loss="categorical_crossentropy",
-                  optimizer=optimizers.SGD(momentum=0.9), metrics=['accuracy'])
     model.fit(x_train, y_train, batch_size=BATCH_SIZE,
               epochs=NUM_EPOCHS, verbose=1)
 

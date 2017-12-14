@@ -5,7 +5,7 @@ from parse_sgfs import board_to_nn
 import numpy as np
 from keras.utils import np_utils
 import parse_sgfs
-from main import board_loss
+from train import board_loss
 import keras.losses
 import math
 
@@ -13,13 +13,20 @@ import math
 SELFPLAY = False
 
 
-def zero_illegal(board, weights):
+def zero_illegal(board, weights, color):
     for x in range(19):
         for y in range(19):
             pos = board.get(x, y)
 
+
             if not pos is None:
                 weights[0][x + 19 * y] = 0
+            else:
+                # suicide rule
+                boardcopy = board.copy()
+                boardcopy.play(x, y, color)
+                if boardcopy.get(x, y) is None:
+                    weights[0][x + 19 * y] = 0
 
 
 def normalized(a):
@@ -61,7 +68,7 @@ def main():
                 break
 
         y = model.predict(np.array([board_to_nn(board, 'w', moves)]))
-        zero_illegal(board, y)
+        zero_illegal(board, y, 'w')
 
         probs = np.reshape(normalized(y[0]), (19, 19))
         print probs

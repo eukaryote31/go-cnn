@@ -1,2 +1,3 @@
+#!/bin/bash
 cd "$(dirname "$0")"
-python gtp.py 2> /dev/null
+python gtp-play.py 2> /dev/null
